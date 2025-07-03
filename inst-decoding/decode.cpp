@@ -63,20 +63,18 @@ std::string getRegisterOperandDecoded(u8 _3bitRegOperand, bool wbit)
     }
 }
 
-int main()
+void processMV_RM_2_R(u8 byte1, std::ifstream &file, std::fstream &out)
 {
+    out << "mov ";
 
-    u8 MV_RM_2_R = 0b10001000;
-    u8 MV_IM_2_RM = 0b11000110;
-
-    std::string line;
-    std::ifstream file("./input/input02", std::ios::in | std::ios::binary);
-    std::fstream out("./output/input02_disassembled.asm", std::ios::out);
-
-    out << "bits 16\r\n\r\n";
+    u8 byte2 = file.get();
+    if (byte2 == (u8)-1)
+    {
+        // error
+        return;
+    }
 
     // byte 1 masks
-    const u8 OPCODE_MASK = 0b11111100;
     const bool DBIT_MASK = 0b00000010; // direction
     const bool WBIT_MASK = 0b00000001; // 1: word (16 bit), 0: byte (8 bit)
 
@@ -85,50 +83,74 @@ int main()
     const u8 REG_MASK = 0b00111000;
     const u8 RM_MASK = 0b00000111;
 
+    // valid MODs (Modes)
+    const u8 MOD_MEMORY_MODE_NO_DISPLACEMENT = 0b00000000;
+    const u8 MOD_MEMORY_MODE_8_DISPLACEMENT = 0b01000000;
+    const u8 MOD_MEMORY_MODE_16_DISPLACEMENT = 0b10000000;
     const u8 MOD_REGISTER_MODE = 0b11000000;
 
-    int safetyCounter = 0;
+    const bool wbit = byte1 & WBIT_MASK;
+    const bool dbit = byte1 & DBIT_MASK;
+
+    // process byte2
+    const u8 modVal = byte2 & MOD_MASK;
+    const u8 regVal = (byte2 & REG_MASK) >> 3;
+    const u8 rmVal = byte2 & RM_MASK;
+
+    // only supporting register mode
+    if (modVal == MOD_REGISTER_MODE)
+    {
+        out << getRegisterOperandDecoded(rmVal, wbit) << ", ";
+        out << getRegisterOperandDecoded(regVal, wbit) << "\r\n";
+    }
+    else if (modVal == MOD_MEMORY_MODE_NO_DISPLACEMENT)
+    {
+        // * R/M 110 is a special case which has 16bit displacement
+    }
+    else if (modVal == MOD_MEMORY_MODE_8_DISPLACEMENT)
+    {
+    }
+    else if (modVal == MOD_MEMORY_MODE_16_DISPLACEMENT)
+    {
+    }
+}
+
+int main()
+{
+
+    // mov register to register OR memory to register
+    u8 MV_RM_2_R = 0b10001000;
+    u8 MV_RM_2_R_MASK = 0b11111100;
+
+    // immediate to register OR immediate to memory
+    u8 MV_IM_2_RM = 0b11000110;
+    u8 MV_IM_2_RM_MASK = 0b11111110;
+
+    // immediate to register
+    u8 MV_IM_2_R = 0b10110000;
+    u8 MV_IM_2_R_MASK = 0b11110000;
+
+    std::string line;
+    std::ifstream file("./input/input02", std::ios::in | std::ios::binary);
+    std::fstream out("./output/input02_disassembled.asm", std::ios::out);
+
+    out << "bits 16\r\n\r\n";
+
+    // byte 1 masks
+    // const u8 OPCODE_MASK = 0b11111100;
 
     while (true)
     {
-        ++safetyCounter;
-        if (safetyCounter > 100)
-        {
-            break;
-        }
-
         u8 byte1 = file.get();
         if (byte1 == (u8)-1)
         {
             break;
         }
 
-        u8 byte2 = file.get();
-        if (byte2 == (u8)-1)
-        {
-            break;
-        }
-
         // process byte1
-
-        if ((OPCODE_MASK & byte1) == MV_RM_2_R)
+        if ((MV_RM_2_R_MASK & byte1) == MV_RM_2_R)
         {
-            out << "mov ";
-        }
-        const bool wbit = byte1 & WBIT_MASK;
-        const bool dbit = byte1 & DBIT_MASK;
-
-        // process byte2
-
-        const u8 modVal = byte2 & MOD_MASK;
-        const u8 regVal = (byte2 & REG_MASK) >> 3;
-        const u8 rmVal = byte2 & RM_MASK;
-
-        // only supporting register mode
-        if (modVal == MOD_REGISTER_MODE)
-        {
-            out << getRegisterOperandDecoded(rmVal, wbit) << ", ";
-            out << getRegisterOperandDecoded(regVal, wbit) << "\r\n";
+            processMV_RM_2_R(byte1, file, out);
         }
     }
 }
