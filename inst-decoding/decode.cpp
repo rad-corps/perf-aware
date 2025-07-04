@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <bitset>
+#include <sstream>
 
 using u8 = unsigned char;
 
@@ -14,6 +15,73 @@ const u8 REG_SP = 0b100; // 0x08
 const u8 REG_BP = 0b101; // 0x10
 const u8 REG_SI = 0b110; // 0x11
 const u8 REG_DI = 0b111; // 0x12
+
+std::string getEffectiveAddressOperandDecoded(u8 rm, u8 mod, std::ifstream &file)
+{
+    std::stringstream ss;
+    // effective address calculator
+    //         MOD 00           MOD 01          MOD 10
+    // RM 000  BX+SI            +8               +16
+    // RM 001  BX+DI            +8               +16
+    // RM 010  BP+SI            +8               +16
+    // RM 011  BP+DI            +8               +16
+    // RM 100  SI               +8               +16
+    // RM 101  DI               +8               +16
+    // RM 110  DIRECT (BP) + 8  +8               +16
+    // RM 111  BX               +8               +16
+
+    switch (rm)
+    {
+    case 0b000:
+        ss << "[bx + si";
+        break;
+    case 0b001:
+        ss << "[bx + di";
+        break;
+    case 0b010:
+        ss << "[bp + si";
+        break;
+    case 0b011:
+        ss << "[bp + di";
+        break;
+    case 0b100:
+        ss << "[si";
+        break;
+    case 0b101:
+        ss << "[di";
+        break;
+    case 0b110:
+        ss << "[bp";
+        break;
+    case 0b111:
+        ss << "[bx";
+        break;
+    }
+
+    if (mod == 0b00)
+    {
+        if (rm == 0b110) // special case
+        {
+            // throw the extra byte away
+            file.get();
+        }
+
+        ss << "]";
+    }
+    else if (mod == 0b01)
+    {
+        u8 value = file.get();
+        ss << " + " << value << "]";
+    }
+    else if (mod == 0b10)
+    {
+        uint16_t value;
+        file.read(reinterpret_cast<char *>(&value), sizeof(value));
+        ss << " + " << value << "]";
+    }
+
+    return ss.str();
+}
 
 std::string getRegisterOperandDecoded(u8 _3bitRegOperand, bool wbit)
 {
@@ -104,15 +172,18 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
         out << getRegisterOperandDecoded(rmVal, wbit) << ", ";
         out << getRegisterOperandDecoded(regVal, wbit) << "\r\n";
     }
-    else if (modVal == MOD_MEMORY_MODE_NO_DISPLACEMENT)
+    else
     {
-        // * R/M 110 is a special case which has 16bit displacement
-    }
-    else if (modVal == MOD_MEMORY_MODE_8_DISPLACEMENT)
-    {
-    }
-    else if (modVal == MOD_MEMORY_MODE_16_DISPLACEMENT)
-    {
+        if (dbit)
+        {
+            out << getEffectiveAddressOperandDecoded(rmVal, modVal, file) << ", ";
+            out << getRegisterOperandDecoded(regVal, wbit) << "\r\n";
+        }
+        else
+        {
+            out << getRegisterOperandDecoded(regVal, wbit) << ", ";
+            out << getEffectiveAddressOperandDecoded(rmVal, modVal, file) << "\r\n";
+        }
     }
 }
 
@@ -124,6 +195,7 @@ void reassembleAndCompare(const std::string &inputBinaryFileName, const std::str
 
     if (ret == 0)
     {
+        const std::string reassembledFileName = disassembledFileName.substr(0, disassembledFileName.length() - 4);
         const std::string diffCommand = std::string{"diff "} + inputBinaryFileName + std::string{" "} + reassembledFileName;
         int diffResult = std::system(diffCommand.c_str());
         if (diffResult != 0)
