@@ -61,9 +61,10 @@ std::string getRegisterOperandDecoded(u8 _3bitRegOperand, bool wbit)
             return "di";
         }
     }
+    return "";
 }
 
-void processMV_RM_2_R(u8 byte1, std::ifstream &file, std::fstream &out)
+void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
 {
     out << "mov ";
 
@@ -115,29 +116,34 @@ void processMV_RM_2_R(u8 byte1, std::ifstream &file, std::fstream &out)
     }
 }
 
-int main()
+int main(int count, char **args)
 {
+    if (count != 2)
+    {
+        std::cout << "supply an 8086 assembly file input argument" << std::endl;
+        return 1;
+    }
+    const std::string inputBinaryFileName = args[1];
 
     // mov register to register OR memory to register
-    u8 MV_RM_2_R = 0b10001000;
-    u8 MV_RM_2_R_MASK = 0b11111100;
+    const u8 MV_REG_MEM_TO_FROM_REG = 0b10001000;
+    const u8 MV_REG_MEM_TO_FROM_REG_MASK = 0b11111100;
 
     // immediate to register OR immediate to memory
-    u8 MV_IM_2_RM = 0b11000110;
-    u8 MV_IM_2_RM_MASK = 0b11111110;
+    const u8 MV_IM_TO_REG_MEM = 0b11000110;
+    const u8 MV_IM_TO_REG_MEM_MASK = 0b11111110;
 
     // immediate to register
-    u8 MV_IM_2_R = 0b10110000;
-    u8 MV_IM_2_R_MASK = 0b11110000;
+    const u8 MV_IM_2_R = 0b10110000;
+    const u8 MV_IM_2_R_MASK = 0b11110000;
 
     std::string line;
-    std::ifstream file("./input/input02", std::ios::in | std::ios::binary);
-    std::fstream out("./output/input02_disassembled.asm", std::ios::out);
+    std::ifstream file(inputBinaryFileName, std::ios::in | std::ios::binary);
+    const std::string disassembledFileName = inputBinaryFileName + std::string{"_disassembled.asm"};
+    const std::string reassembledFileName = inputBinaryFileName + std::string{"_disassembled"};
+    std::fstream out(inputBinaryFileName + std::string{"_disassembled.asm"}, std::ios::out);
 
     out << "bits 16\r\n\r\n";
-
-    // byte 1 masks
-    // const u8 OPCODE_MASK = 0b11111100;
 
     while (true)
     {
@@ -148,9 +154,32 @@ int main()
         }
 
         // process byte1
-        if ((MV_RM_2_R_MASK & byte1) == MV_RM_2_R)
+        if ((MV_REG_MEM_TO_FROM_REG_MASK & byte1) == MV_REG_MEM_TO_FROM_REG)
         {
-            processMV_RM_2_R(byte1, file, out);
+            reg_mem_to_from_reg(byte1, file, out);
         }
+    }
+    out.close();
+
+    // reassemble the disassembly
+    const std::string nasmCommand = std::string{"nasm "} + disassembledFileName;
+    int ret = std::system(nasmCommand.c_str());
+
+    if (ret == 0)
+    {
+        const std::string diffCommand = std::string{"diff "} + inputBinaryFileName + std::string{" "} + reassembledFileName;
+        int diffResult = std::system(diffCommand.c_str());
+        if (diffResult == 1)
+        {
+            std::cout << "input did not match dissassembly" << std::endl;
+        }
+        else
+        {
+            std::cout << "success!" << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Compilation failed with error code: " << ret << std::endl;
     }
 }
