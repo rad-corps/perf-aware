@@ -116,6 +116,31 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     }
 }
 
+void reassembleAndCompare(const std::string &inputBinaryFileName, const std::string &disassembledFileName)
+{
+    // reassemble the disassembly
+    const std::string nasmCommand = std::string{"nasm "} + disassembledFileName;
+    int ret = std::system(nasmCommand.c_str());
+
+    if (ret == 0)
+    {
+        const std::string diffCommand = std::string{"diff "} + inputBinaryFileName + std::string{" "} + reassembledFileName;
+        int diffResult = std::system(diffCommand.c_str());
+        if (diffResult != 0)
+        {
+            std::cout << "input did not match dissassembly" << std::endl;
+        }
+        else
+        {
+            std::cout << "success!" << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Compilation failed with error code: " << ret << std::endl;
+    }
+}
+
 int main(int count, char **args)
 {
     if (count != 2)
@@ -161,25 +186,5 @@ int main(int count, char **args)
     }
     out.close();
 
-    // reassemble the disassembly
-    const std::string nasmCommand = std::string{"nasm "} + disassembledFileName;
-    int ret = std::system(nasmCommand.c_str());
-
-    if (ret == 0)
-    {
-        const std::string diffCommand = std::string{"diff "} + inputBinaryFileName + std::string{" "} + reassembledFileName;
-        int diffResult = std::system(diffCommand.c_str());
-        if (diffResult == 1)
-        {
-            std::cout << "input did not match dissassembly" << std::endl;
-        }
-        else
-        {
-            std::cout << "success!" << std::endl;
-        }
-    }
-    else
-    {
-        std::cerr << "Compilation failed with error code: " << ret << std::endl;
-    }
+    reassembleAndCompare(inputBinaryFileName, disassembledFileName);
 }
