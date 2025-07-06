@@ -178,7 +178,7 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     const u8 MOD_MEMORY_MODE_NO_DISPLACEMENT = 0b00000000;
     const u8 MOD_MEMORY_MODE_8_DISPLACEMENT = 0b01000000;
     const u8 MOD_MEMORY_MODE_16_DISPLACEMENT = 0b10000000;
-    const u8 MOD_REGISTER_MODE = 0b11000000;
+    const u8 MOD_REGISTER_MODE = 0b00000011;
 
     const bool wbit = (byte1 & WBIT_MASK) == WBIT_MASK;
     const bool dbit = (byte1 & DBIT_MASK) == DBIT_MASK;
@@ -187,8 +187,6 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     const u8 modVal = (byte2 & MOD_MASK) >> 6;
     const u8 regVal = (byte2 & REG_MASK) >> 3;
     const u8 rmVal = byte2 & RM_MASK;
-
-    std::cout << "modVal: " << modVal << ", regVal: " << regVal << ", rmVal: " << rmVal << ", dbit: " << dbit << ", wbit" << wbit << std::endl;
 
     // only supporting register mode
     if (modVal == MOD_REGISTER_MODE)
@@ -237,6 +235,28 @@ void reassembleAndCompare(const std::string &inputBinaryFileName, const std::str
     }
 }
 
+void immediateToReg(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    out << "mov ";
+    const u8 WBIT_MASK = 0b00001000; // 1: word (16 bit), 0: byte (8 bit)
+    const u8 REG_MASK = 0b00000111;
+
+    const bool wbit = (byte1 & WBIT_MASK) == WBIT_MASK;
+    out << getRegisterOperandDecoded(byte1 & REG_MASK, wbit) << ", ";
+
+    if (wbit)
+    {
+        uint16_t value;
+        file.read(reinterpret_cast<char *>(&value), sizeof(value));
+        out << (int)value << "\r\n";
+    }
+    else
+    {
+        const u8 value = file.get();
+        out << (int)value << "\r\n";
+    }
+}
+
 int main(int count, char **args)
 {
     if (count != 2)
@@ -251,8 +271,8 @@ int main(int count, char **args)
     const u8 MV_REG_MEM_TO_FROM_REG_MASK = 0b11111100;
 
     // immediate to register OR immediate to memory
-    const u8 MV_IM_TO_REG_MEM = 0b11000110;
-    const u8 MV_IM_TO_REG_MEM_MASK = 0b11111110;
+    const u8 MV_IM_TO_REG = 0b10110000;
+    const u8 MV_IM_TO_REG_MASK = 0b11110000;
 
     // immediate to register
     const u8 MV_IM_2_R = 0b10110000;
@@ -278,6 +298,10 @@ int main(int count, char **args)
         if ((MV_REG_MEM_TO_FROM_REG_MASK & byte1) == MV_REG_MEM_TO_FROM_REG)
         {
             reg_mem_to_from_reg(byte1, file, out);
+        }
+        else if ((MV_IM_TO_REG_MASK & byte1) == MV_IM_TO_REG)
+        {
+            immediateToReg(byte1, file, out);
         }
     }
     out.close();

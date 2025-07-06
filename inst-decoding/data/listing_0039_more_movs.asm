@@ -21,6 +21,8 @@ mov si, bx
 mov dh, al
 
 ; 8-bit immediate-to-register
+;| 1 1 0 0 0 1 1 0 | 
+;|     OPCODE    w |
 mov cl, 12
 mov ch, -12
 
@@ -31,8 +33,16 @@ mov dx, 3948
 mov dx, -3948
 
 ; Source address calculation
+; | 1 0 0 0 1 0 1 0 | 0 0 0 0 0 0 0 0
+; |    OPCODE   D W | MOD REG   RM
 mov al, [bx + si]
+
+; | 1 0 0 0 1 0 1 1 | 0 0 0 1 1 0 1 1
+; |    OPCODE   D W | MOD REG   RM
 mov bx, [bp + di]
+
+; | 1 0 0 0 1 0 1 1 | 0 0 0 1 0 1 1 0 # special case
+; |    OPCODE   D W | MOD REG   RM
 mov dx, [bp]
 
 ; Source address calculation plus 8-bit displacement
