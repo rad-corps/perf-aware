@@ -1,10 +1,10 @@
 bits 16
 
 mov al, [bx + si]
-mov [bp + di], bx
-mov [bp, dx
-mov ah, [bx + si
-mov al, [bx + si
+mov bx, [bp + di]
+mov dx, [bp + 0]
+mov ah, [bx + si + 4]
+mov al, [bx + si + 4999]
 mov [bx + di], cx
-mov cl, [bp + si]
-mov ch, [bp
+mov [bp + si], cl
+mov [bp + 0], ch

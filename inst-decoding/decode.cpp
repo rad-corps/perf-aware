@@ -3,6 +3,7 @@
 #include <iostream>
 #include <bitset>
 #include <sstream>
+#include <exception>
 
 using u8 = unsigned char;
 
@@ -16,19 +17,36 @@ const u8 REG_BP = 0b101; // 0x10
 const u8 REG_SI = 0b110; // 0x11
 const u8 REG_DI = 0b111; // 0x12
 
+// effective address calculator
+//         MOD 00           MOD 01          MOD 10
+// RM 000  BX+SI            +8               +16
+// RM 001  BX+DI            +8               +16
+// RM 010  BP+SI            +8               +16
+// RM 011  BP+DI            +8               +16
+// RM 100  SI               +8               +16
+// RM 101  DI               +8               +16
+// RM 110  DIRECT (BP) + 8  +8               +16
+// RM 111  BX               +8               +16
+
+// register address calculator
+// REG      W=0     W=1
+// 000      AL      AX
+// 001      CL      CX
+// 010      DL      DX
+// 011      BL      BX
+// 100      AH      SP
+// 101      CH      BP
+// 110      DH      SI
+// 111      BH      DI
+
+// instruction encoding
+// MOV = Move
+// Reg/memory to/from reg
+// 100010dw|mod reg rm|displo|disphi
+//           2   3   3
 std::string getEffectiveAddressOperandDecoded(u8 rm, u8 mod, std::ifstream &file)
 {
     std::stringstream ss;
-    // effective address calculator
-    //         MOD 00           MOD 01          MOD 10
-    // RM 000  BX+SI            +8               +16
-    // RM 001  BX+DI            +8               +16
-    // RM 010  BP+SI            +8               +16
-    // RM 011  BP+DI            +8               +16
-    // RM 100  SI               +8               +16
-    // RM 101  DI               +8               +16
-    // RM 110  DIRECT (BP) + 8  +8               +16
-    // RM 111  BX               +8               +16
 
     switch (rm)
     {
@@ -71,13 +89,17 @@ std::string getEffectiveAddressOperandDecoded(u8 rm, u8 mod, std::ifstream &file
     else if (mod == 0b01)
     {
         u8 value = file.get();
-        ss << " + " << value << "]";
+        ss << " + " << (int)value << "]";
     }
     else if (mod == 0b10)
     {
         uint16_t value;
         file.read(reinterpret_cast<char *>(&value), sizeof(value));
-        ss << " + " << value << "]";
+        ss << " + " << (int)value << "]";
+    }
+    else
+    {
+        throw std::exception();
     }
 
     return ss.str();
@@ -144,8 +166,8 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     }
 
     // byte 1 masks
-    const bool DBIT_MASK = 0b00000010; // direction
-    const bool WBIT_MASK = 0b00000001; // 1: word (16 bit), 0: byte (8 bit)
+    const u8 DBIT_MASK = 0b00000010; // direction
+    const u8 WBIT_MASK = 0b00000001; // 1: word (16 bit), 0: byte (8 bit)
 
     // byte 2 masks
     const u8 MOD_MASK = 0b11000000;
@@ -158,13 +180,15 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     const u8 MOD_MEMORY_MODE_16_DISPLACEMENT = 0b10000000;
     const u8 MOD_REGISTER_MODE = 0b11000000;
 
-    const bool wbit = byte1 & WBIT_MASK;
-    const bool dbit = byte1 & DBIT_MASK;
+    const bool wbit = (byte1 & WBIT_MASK) == WBIT_MASK;
+    const bool dbit = (byte1 & DBIT_MASK) == DBIT_MASK;
 
     // process byte2
-    const u8 modVal = byte2 & MOD_MASK;
+    const u8 modVal = (byte2 & MOD_MASK) >> 6;
     const u8 regVal = (byte2 & REG_MASK) >> 3;
     const u8 rmVal = byte2 & RM_MASK;
+
+    std::cout << "modVal: " << modVal << ", regVal: " << regVal << ", rmVal: " << rmVal << ", dbit: " << dbit << ", wbit" << wbit << std::endl;
 
     // only supporting register mode
     if (modVal == MOD_REGISTER_MODE)
@@ -174,7 +198,7 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     }
     else
     {
-        if (dbit)
+        if (!dbit)
         {
             out << getEffectiveAddressOperandDecoded(rmVal, modVal, file) << ", ";
             out << getRegisterOperandDecoded(regVal, wbit) << "\r\n";
