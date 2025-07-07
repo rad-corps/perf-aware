@@ -55,3 +55,6 @@ mov al, [bx + si + 4999]
 mov [bx + di], cx
 mov [bp + si], cl
 mov [bp], ch
+
+; immediate to memory
+

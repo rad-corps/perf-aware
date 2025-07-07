@@ -289,15 +289,15 @@ int main(int count, char **args)
 
     // mov register to register OR memory to register
     const u8 MV_REG_MEM_TO_FROM_REG = 0b10001000;
-    const u8 MV_REG_MEM_TO_FROM_REG_MASK = 0b11111100;
+    const u8 REG_MEM_TO_FROM_REG_MASK = 0b11111100;
 
     // immediate to register OR immediate to memory
-    const u8 MV_IM_TO_REG = 0b10110000;
-    const u8 MV_IM_TO_REG_MASK = 0b11110000;
+    const u8 IM_TO_REG_MEM_MASK = 0b11111110;
+    const u8 MV_IM_TO_REG_MEM = 0b11000110;
 
     // immediate to register
-    const u8 MV_IM_2_R = 0b10110000;
-    const u8 MV_IM_2_R_MASK = 0b11110000;
+    const u8 MV_IM_TO_REG = 0b10110000;
+    const u8 IM_TO_REG_MASK = 0b11110000;
 
     std::string line;
     std::ifstream file(inputBinaryFileName, std::ios::in | std::ios::binary);
@@ -316,11 +316,11 @@ int main(int count, char **args)
         }
 
         // process byte1
-        if ((MV_REG_MEM_TO_FROM_REG_MASK & byte1) == MV_REG_MEM_TO_FROM_REG)
+        if ((REG_MEM_TO_FROM_REG_MASK & byte1) == MV_REG_MEM_TO_FROM_REG)
         {
             movRegMemToFromReg(byte1, file, out);
         }
-        else if ((MV_IM_TO_REG_MASK & byte1) == MV_IM_TO_REG)
+        else if ((IM_TO_REG_MASK & byte1) == MV_IM_TO_REG)
         {
             movImmediateToReg(byte1, file, out);
         }

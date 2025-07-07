@@ -3,27 +3,29 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-
-  "configurations": [
-    {
-      "name": "g++.exe build and debug active file",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/inst-decoding/decode",
-      "args": ["./data/effective"],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/inst-decoding",
-      "environment": [],
-      "externalConsole": false, //set to true to see output in cmd instead
-      "preLaunchTask": "build",
-      "MIMode": "gdb",
-      "miDebuggerPath": "/usr/bin/gdb",
-      "setupCommands": [
+    "configurations": [
         {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
+            "name": "debug decoder",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/inst-decoding/decode",
+            "args": [
+                "./data/listing_0039_more_movs"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/inst-decoding",
+            "environment": [],
+            "externalConsole": false, //set to true to see output in cmd instead
+            "preLaunchTask": "decode full build",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
-      ]
-    }]
+    ]
 }

@@ -1,23 +1,45 @@
-
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "build",
-      "type": "shell",
-      "command": "g++",
-      "args": [
-        "-g",
-        "-O0",
-        "./inst-decoding/decode.cpp",         // Replace with your source files
-        "-o",
-        "./inst-decoding/decode"      // Replace with your output binary
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": ["$gcc"]
-    }
-  ]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build decode.cpp",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "-O0",
+                "./inst-decoding/decode.cpp", // Replace with your source files
+                "-o",
+                "./inst-decoding/decode" // Replace with your output binary
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "clean disassembled",
+            "type": "shell",
+            "command": "find ./inst-decoding/data -type f -name \"*_disassembled.asm\" -exec rm -f {} +",
+            "problemMatcher": []
+        },
+        {
+            "label": "clean assembled",
+            "type": "shell",
+            "command": "find ./inst-decoding/data -type f ! -name \"*.*\" -exec rm -f {} +",
+            "problemMatcher": []
+        },
+        {
+            "label": "decode full build",
+            "dependsOn": [
+                "clean disassembled",
+                "build decode.cpp"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        }
+    ]
 }

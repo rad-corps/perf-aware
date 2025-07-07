@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "*.entdef": "json",
-        "*.templatedef": "json",
-        "iosfwd": "cpp",
-        "fstream": "cpp",
-        "istream": "cpp"
-    }
-}
