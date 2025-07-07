@@ -154,10 +154,8 @@ std::string getRegisterOperandDecoded(u8 _3bitRegOperand, bool wbit)
     return "";
 }
 
-void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
+void regMemToFromReg(u8 byte1, std::ifstream &file, std::fstream &out)
 {
-    out << "mov ";
-
     u8 byte2 = file.get();
     if (byte2 == (u8)-1)
     {
@@ -209,6 +207,51 @@ void reg_mem_to_from_reg(u8 byte1, std::ifstream &file, std::fstream &out)
     }
 }
 
+void movRegMemToFromReg(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    out << "mov ";
+    regMemToFromReg(byte1, file, out);
+}
+
+void addRegMemToFromReg(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    out << "add ";
+    regMemToFromReg(byte1, file, out);
+}
+
+void immediateToReg(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    const u8 WBIT_MASK = 0b00001000; // 1: word (16 bit), 0: byte (8 bit)
+    const u8 REG_MASK = 0b00000111;
+
+    const bool wbit = (byte1 & WBIT_MASK) == WBIT_MASK;
+    out << getRegisterOperandDecoded(byte1 & REG_MASK, wbit) << ", ";
+
+    if (wbit)
+    {
+        uint16_t value;
+        file.read(reinterpret_cast<char *>(&value), sizeof(value));
+        out << (int)value << "\r\n";
+    }
+    else
+    {
+        const u8 value = file.get();
+        out << (int)value << "\r\n";
+    }
+}
+
+void movImmediateToReg(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    out << "mov ";
+    immediateToReg(byte1, file, out);
+}
+
+void addImmediateToReg(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    out << "add ";
+    immediateToReg(byte1, file, out);
+}
+
 void reassembleAndCompare(const std::string &inputBinaryFileName, const std::string &disassembledFileName)
 {
     // reassemble the disassembly
@@ -232,28 +275,6 @@ void reassembleAndCompare(const std::string &inputBinaryFileName, const std::str
     else
     {
         std::cerr << "Compilation failed with error code: " << ret << std::endl;
-    }
-}
-
-void immediateToReg(u8 byte1, std::ifstream &file, std::fstream &out)
-{
-    out << "mov ";
-    const u8 WBIT_MASK = 0b00001000; // 1: word (16 bit), 0: byte (8 bit)
-    const u8 REG_MASK = 0b00000111;
-
-    const bool wbit = (byte1 & WBIT_MASK) == WBIT_MASK;
-    out << getRegisterOperandDecoded(byte1 & REG_MASK, wbit) << ", ";
-
-    if (wbit)
-    {
-        uint16_t value;
-        file.read(reinterpret_cast<char *>(&value), sizeof(value));
-        out << (int)value << "\r\n";
-    }
-    else
-    {
-        const u8 value = file.get();
-        out << (int)value << "\r\n";
     }
 }
 
@@ -297,11 +318,11 @@ int main(int count, char **args)
         // process byte1
         if ((MV_REG_MEM_TO_FROM_REG_MASK & byte1) == MV_REG_MEM_TO_FROM_REG)
         {
-            reg_mem_to_from_reg(byte1, file, out);
+            movRegMemToFromReg(byte1, file, out);
         }
         else if ((MV_IM_TO_REG_MASK & byte1) == MV_IM_TO_REG)
         {
-            immediateToReg(byte1, file, out);
+            movImmediateToReg(byte1, file, out);
         }
     }
     out.close();
