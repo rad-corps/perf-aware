@@ -16,6 +16,9 @@
 
 bits 16
 
+; immediate to memory
+mov byte [bp + di], 16
+
 ; Register-to-register
 mov si, bx
 mov dh, al
@@ -56,5 +59,5 @@ mov [bx + di], cx
 mov [bp + si], cl
 mov [bp], ch
 
-; immediate to memory
+
 

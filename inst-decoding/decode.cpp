@@ -252,6 +252,25 @@ void addImmediateToReg(u8 byte1, std::ifstream &file, std::fstream &out)
     immediateToReg(byte1, file, out);
 }
 
+void immediateToMem(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    // add byte or word
+    const bool IsWord = (byte1 & 0b00000001) == 0b00000001;
+    out << (IsWord ? "word " : "byte ");
+
+    const u8 byte2 = file.get();
+
+    const u8 mod = byte2 >> 6;
+    const u8 rm = byte2 & 0b00000111;
+}
+
+void movImmediateToMem(u8 byte1, std::ifstream &file, std::fstream &out)
+{
+    // 1100011w | mod 0 0 0 rm | displo | disphi | data | data ifw=1
+    out << "mov ";
+    immediateToMem(byte1, file, out);
+}
+
 void reassembleAndCompare(const std::string &inputBinaryFileName, const std::string &disassembledFileName)
 {
     // reassemble the disassembly
@@ -285,7 +304,12 @@ int main(int count, char **args)
         std::cout << "supply an 8086 assembly file input argument" << std::endl;
         return 1;
     }
-    const std::string inputBinaryFileName = args[1];
+    const std::string assemblyFileName = args[1];
+    const std::string inputBinaryFileName = assemblyFileName.substr(0, assemblyFileName.length() - 4);
+
+    // assemble the assembly file
+    const std::string nasmCommand = std::string{"nasm "} + assemblyFileName;
+    std::system(nasmCommand.c_str());
 
     // mov register to register OR memory to register
     const u8 MV_REG_MEM_TO_FROM_REG = 0b10001000;
@@ -323,6 +347,10 @@ int main(int count, char **args)
         else if ((IM_TO_REG_MASK & byte1) == MV_IM_TO_REG)
         {
             movImmediateToReg(byte1, file, out);
+        }
+        else if ((MV_IM_TO_REG_MEM & byte1) == MV_IM_TO_REG_MEM)
+        {
+            movImmediateToMem(byte1, file, out);
         }
     }
     out.close();

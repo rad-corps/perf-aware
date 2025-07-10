@@ -1,0 +1,1 @@
+mov byte [bp + di + 5000], 16
